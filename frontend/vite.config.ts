@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite'
-import { devtools } from '@tanstack/devtools-vite'
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
@@ -10,7 +9,6 @@ export default defineConfig({
     TanStackRouterVite({ target: 'react', autoCodeSplitting: true }),
     viteReact(),
     tailwindcss(),
-    devtools(),
   ],
   server: {
     port: 3000,
