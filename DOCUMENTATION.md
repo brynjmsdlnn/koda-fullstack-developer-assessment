@@ -6,38 +6,15 @@ This document provides complete instructions, architecture explanations, API doc
 
 ## 1. Quick Start & Setup Instructions
 
-The application is containerized using Docker Compose, providing a complete environment for both backend and frontend services.
+Full setup guide (Docker + local development, troubleshooting): [SETUP.md](./SETUP.md).
+It covers prerequisites, environment + `APP_KEY` configuration, starting the
+stack, seeding `test_data.json`, and running without Docker.
 
-### Prerequisites
-* [Docker Desktop](https://www.docker.com/products/docker-desktop/) (running)
-* Git
-
-### Step-by-Step Launch
-
-1. **Clone and Navigate to Repository**:
-   ```bash
-   git clone <repository-url>
-   cd koda-fullstack-developer-assessment
-   ```
-
-2. **Start Docker Containers**:
-   ```bash
-   docker compose up -d
-   ```
-   * Backend container runs PHP 8.4 with Laravel Artisan serve on port `8000`.
-   * Frontend container runs Node 22 with Vite dev server on port `3000`.
-
-3. **Initialize Database and Seed Test Data**:
-   Execute the migration and idempotent seeder (loads 12 initial projects from `test_data.json`):
-   ```bash
-   docker compose exec backend php artisan migrate --seed
-   ```
-
-4. **Access the Services**:
-   * **Frontend Application**: [http://localhost:3000](http://localhost:3000)
-   * **Backend API Base**: [http://localhost:8000/api/projects](http://localhost:8000/api/projects)
-   * **Interactive OpenAPI Docs (Stoplight Elements UI)**: [http://localhost:8000/docs/api](http://localhost:8000/docs/api)
-   * **OpenAPI 3.1 JSON Specification**: [http://localhost:8000/docs/api.json](http://localhost:8000/docs/api.json)
+### Access the Services
+* **Frontend Application**: [http://localhost:3000](http://localhost:3000)
+* **Backend API Base**: [http://localhost:8000/api/projects](http://localhost:8000/api/projects)
+* **Interactive OpenAPI Docs (Stoplight Elements UI)**: [http://localhost:8000/docs/api](http://localhost:8000/docs/api)
+* **OpenAPI 3.1 JSON Specification**: [http://localhost:8000/docs/api.json](http://localhost:8000/docs/api.json)
 
 ---
 
@@ -71,7 +48,7 @@ The application is containerized using Docker Compose, providing a complete envi
 * **Database**: SQLite (`database/database.sqlite`), mounted via Docker volume.
 * **OpenAPI Generator**: `dedoc/scramble` (`0.13.43`) automatically generates OpenAPI 3.1.0 spec from route signatures, controller attributes, and form requests.
 * **Code Styling**: Laravel Pint (`1.32.0`) PSR-12 standard.
-* **Testing**: Pest PHP (`5.1.4`) automated test framework.
+* **Testing**: Pest PHP (`5.1.4`) automated test framework (24 feature tests).
 
 ### Frontend (React 19 / TypeScript)
 * **Framework**: React 19 (`19.3.0`) SPA bundled with Vite 8 (`8.2.2`).
@@ -168,7 +145,7 @@ docker compose exec backend php artisan test --compact
 ```
 **Results**:
 ```text
-Tests:    25 passed (95 assertions)
+Tests:    24 passed (95 assertions)
 Duration: 3.29s
 ```
 
@@ -227,4 +204,7 @@ Frontend JavaScript ecosystems conventionally use `camelCase`, while Laravel con
 * **Responsive Views**: The dashboard automatically switches between a high-density table for desktop screens and clean, touch-friendly cards on mobile devices.
 
 ### 4. AI Tooling Disclosure
-* In compliance with the assessment guidelines, **Antigravity** (Google DeepMind's advanced agentic coding pair programmer) was utilized to assist with scaffolding boilerplate, synchronizing the OpenAPI pipeline, and generating the Pest automated test matrix. All architecture, database schemas, normalization logic, and components were reviewed, customized, and verified end-to-end.
+* In compliance with the assessment guidelines, the following AI tools were used:
+  * **Antigravity** (Google DeepMind's advanced agentic coding pair programmer) — scaffolding boilerplate, synchronizing the OpenAPI pipeline, and generating the Pest automated test matrix. All architecture, database schemas, normalization logic, and components were reviewed, customized, and verified end-to-end.
+  * **OpenCode** — agentic assistance with tooling tasks: codebase exploration, cleanup refactors, and verification.
+  * **ChatGPT** — brainstorming and researching the tools used in the project (e.g. Docker behavior).
