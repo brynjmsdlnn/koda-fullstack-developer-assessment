@@ -1,87 +1,198 @@
+import { useState, useDeferredValue } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
+import { useQueryClient } from '@tanstack/react-query'
+import { FolderPlus, RefreshCw } from 'lucide-react'
+import {
+  useProjectsIndex,
+  useProjectsStore,
+  useProjectsUpdate,
+  useProjectsDestroy,
+  getProjectsIndexQueryKey,
+} from '#/api/generated/endpoints'
+import type {
+  ProjectResource,
+  StoreProjectRequest,
+} from '#/api/generated/models'
+import ProjectStats from '#/components/projects/ProjectStats'
+import ProjectFilters from '#/components/projects/ProjectFilters'
+import type { FilterState } from '#/components/projects/ProjectFilters'
+import ProjectTable from '#/components/projects/ProjectTable'
+import ProjectFormModal from '#/components/projects/ProjectFormModal'
+import DeleteConfirmModal from '#/components/projects/DeleteConfirmModal'
 
-export const Route = createFileRoute('/')({ component: App })
+export const Route = createFileRoute('/')({ component: DashboardPage })
 
-function App() {
+function DashboardPage() {
+  const queryClient = useQueryClient()
+
+  // Filter & Search State
+  const [filters, setFilters] = useState<FilterState>({
+    search: '',
+    status: '',
+    priority: '',
+    sortBy: 'created_at',
+    sortOrder: 'desc',
+  })
+
+  // Defer search to prevent unnecessary spamming while typing
+  const deferredSearch = useDeferredValue(filters.search)
+
+  // Modal State
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [editingProject, setEditingProject] = useState<ProjectResource | null>(
+    null,
+  )
+  const [deletingProject, setDeletingProject] =
+    useState<ProjectResource | null>(null)
+
+  // Fetch Projects via Orval-generated hook
+  const { data, isLoading, isFetching, refetch } = useProjectsIndex({
+    search: deferredSearch || undefined,
+    status: filters.status || undefined,
+    priority: (filters.priority as any) || undefined,
+    sort_by: filters.sortBy,
+    sort_order: filters.sortOrder,
+    all: true,
+  })
+
+  const projects = data?.data || []
+
+  // Mutations
+  const createMutation = useProjectsStore()
+  const updateMutation = useProjectsUpdate()
+  const deleteMutation = useProjectsDestroy()
+
+  // Handlers
+  const handleFilterChange = (newFilters: Partial<FilterState>) => {
+    setFilters((prev) => ({ ...prev, ...newFilters }))
+  }
+
+  const handleResetFilters = () => {
+    setFilters({
+      search: '',
+      status: '',
+      priority: '',
+      sortBy: 'created_at',
+      sortOrder: 'desc',
+    })
+  }
+
+  const handleFormSubmit = async (formData: StoreProjectRequest) => {
+    if (editingProject) {
+      await updateMutation.mutateAsync({
+        project: editingProject.id,
+        data: formData,
+      })
+    } else {
+      await createMutation.mutateAsync({
+        data: formData,
+      })
+    }
+    // Invalidate query cache to refresh list
+    await queryClient.invalidateQueries({
+      queryKey: getProjectsIndexQueryKey(),
+    })
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingProject) return
+    await deleteMutation.mutateAsync({ project: deletingProject.id })
+    await queryClient.invalidateQueries({
+      queryKey: getProjectsIndexQueryKey(),
+    })
+    setDeletingProject(null)
+  }
+
+  const isFiltered =
+    Boolean(filters.search) ||
+    Boolean(filters.status) ||
+    Boolean(filters.priority) ||
+    filters.sortBy !== 'created_at' ||
+    filters.sortOrder !== 'desc'
+
   return (
-    <main className="page-wrap px-4 pb-8 pt-14">
-      <section className="island-shell rise-in relative overflow-hidden rounded-[2rem] px-6 py-10 sm:px-10 sm:py-14">
-        <div className="pointer-events-none absolute -left-20 -top-24 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(79,184,178,0.32),transparent_66%)]" />
-        <div className="pointer-events-none absolute -bottom-20 -right-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(47,106,74,0.18),transparent_66%)]" />
-        <p className="island-kicker mb-3">TanStack Start Base Template</p>
-        <h1 className="display-title mb-5 max-w-3xl text-4xl leading-[1.02] font-bold tracking-tight text-[var(--sea-ink)] sm:text-6xl">
-          Start simple, ship quickly.
-        </h1>
-        <p className="mb-8 max-w-2xl text-base text-[var(--sea-ink-soft)] sm:text-lg">
-          This base starter intentionally keeps things light: two routes, clean
-          structure, and the essentials you need to build from scratch.
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <a
-            href="/about"
-            className="rounded-full border border-[rgba(50,143,151,0.3)] bg-[rgba(79,184,178,0.14)] px-5 py-2.5 text-sm font-semibold text-[var(--lagoon-deep)] no-underline transition hover:-translate-y-0.5 hover:bg-[rgba(79,184,178,0.24)]"
-          >
-            About This Starter
-          </a>
-          <a
-            href="https://tanstack.com/router"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-full border border-[rgba(23,58,64,0.2)] bg-white/50 px-5 py-2.5 text-sm font-semibold text-[var(--sea-ink)] no-underline transition hover:-translate-y-0.5 hover:border-[rgba(23,58,64,0.35)]"
-          >
-            Router Guide
-          </a>
+    <main className="page-wrap px-4 pb-12 pt-8 sm:pt-10">
+      {/* Top Header & Action Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-[var(--sea-ink)]">
+              Client Projects
+            </h1>
+            {isFetching && !isLoading && (
+              <RefreshCw className="w-4 h-4 text-[var(--sea-ink-soft)] animate-spin" />
+            )}
+          </div>
+          <p className="text-sm text-[var(--sea-ink-soft)] mt-1">
+            Track client initiatives, manage priorities, and monitor project
+            timelines.
+          </p>
         </div>
-      </section>
 
-      <section className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[
-          [
-            'Type-Safe Routing',
-            'Routes and links stay in sync across every page.',
-          ],
-          [
-            'Server Functions',
-            'Call server code from your UI without creating API boilerplate.',
-          ],
-          [
-            'Streaming by Default',
-            'Ship progressively rendered responses for faster experiences.',
-          ],
-          [
-            'Tailwind Native',
-            'Design quickly with utility-first styling and reusable tokens.',
-          ],
-        ].map(([title, desc], index) => (
-          <article
-            key={title}
-            className="island-shell feature-card rise-in rounded-2xl p-5"
-            style={{ animationDelay: `${index * 90 + 80}ms` }}
+        <div className="flex items-center gap-2.5 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            title="Refresh projects"
+            className="p-2.5 rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)] text-[var(--sea-ink)] hover:border-[var(--lagoon)] transition disabled:opacity-50"
           >
-            <h2 className="mb-2 text-base font-semibold text-[var(--sea-ink)]">
-              {title}
-            </h2>
-            <p className="m-0 text-sm text-[var(--sea-ink-soft)]">{desc}</p>
-          </article>
-        ))}
-      </section>
+            <RefreshCw
+              className={`w-4 h-4 ${isFetching ? 'animate-spin' : ''}`}
+            />
+          </button>
 
-      <section className="island-shell mt-8 rounded-2xl p-6">
-        <p className="island-kicker mb-2">Quick Start</p>
-        <ul className="m-0 list-disc space-y-2 pl-5 text-sm text-[var(--sea-ink-soft)]">
-          <li>
-            Edit <code>src/routes/index.tsx</code> to customize the home page.
-          </li>
-          <li>
-            Update <code>src/components/Header.tsx</code> and{' '}
-            <code>src/components/Footer.tsx</code> for brand links.
-          </li>
-          <li>
-            Add routes in <code>src/routes</code> and tweak visual tokens in{' '}
-            <code>src/styles.css</code>.
-          </li>
-        </ul>
-      </section>
+          <button
+            type="button"
+            onClick={() => setIsCreateOpen(true)}
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-[var(--lagoon-deep)] text-white text-sm font-semibold hover:opacity-90 shadow-sm transition"
+          >
+            <FolderPlus className="w-4 h-4" />
+            New Project
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Overview Cards */}
+      <ProjectStats projects={projects} />
+
+      {/* Filter and Search Bar */}
+      <ProjectFilters
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onReset={handleResetFilters}
+      />
+
+      {/* Main Project Table & Cards */}
+      <ProjectTable
+        projects={projects}
+        isLoading={isLoading}
+        onEdit={(p) => setEditingProject(p)}
+        onDelete={(p) => setDeletingProject(p)}
+        onCreateClick={() => setIsCreateOpen(true)}
+        isFiltered={isFiltered}
+      />
+
+      {/* Project Form Modal (Create & Edit) */}
+      <ProjectFormModal
+        isOpen={isCreateOpen || Boolean(editingProject)}
+        onClose={() => {
+          setIsCreateOpen(false)
+          setEditingProject(null)
+        }}
+        onSubmit={handleFormSubmit}
+        project={editingProject}
+        isLoading={createMutation.isPending || updateMutation.isPending}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={Boolean(deletingProject)}
+        onClose={() => setDeletingProject(null)}
+        onConfirm={handleDeleteConfirm}
+        project={deletingProject}
+        isLoading={deleteMutation.isPending}
+      />
     </main>
   )
 }

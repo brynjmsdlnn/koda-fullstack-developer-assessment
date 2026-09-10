@@ -8,6 +8,7 @@ use App\Http\Requests\StoreProjectRequest;
 use App\Http\Requests\UpdateProjectRequest;
 use App\Http\Resources\ProjectResource;
 use App\Models\Project;
+use Dedoc\Scramble\Attributes\BodyParameter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
@@ -42,6 +43,10 @@ class ProjectController extends Controller
     /**
      * Store a newly created resource in storage.
      */
+    #[BodyParameter('clientName', 'Client name (camelCase alias)', type: 'string', required: false)]
+    #[BodyParameter('projectName', 'Project name (camelCase alias)', type: 'string', required: false)]
+    #[BodyParameter('startDate', 'Start date in YYYY-MM-DD format (camelCase alias)', type: 'string', format: 'date', required: false)]
+    #[BodyParameter('dueDate', 'Due date in YYYY-MM-DD format (camelCase alias)', type: 'string', format: 'date', required: false)]
     public function store(StoreProjectRequest $request): JsonResponse
     {
         $project = Project::create($request->validated());
@@ -62,6 +67,10 @@ class ProjectController extends Controller
     /**
      * Update the specified resource in storage.
      */
+    #[BodyParameter('clientName', 'Client name (camelCase alias)', type: 'string', required: false)]
+    #[BodyParameter('projectName', 'Project name (camelCase alias)', type: 'string', required: false)]
+    #[BodyParameter('startDate', 'Start date in YYYY-MM-DD format (camelCase alias)', type: 'string', format: 'date', required: false)]
+    #[BodyParameter('dueDate', 'Due date in YYYY-MM-DD format (camelCase alias)', type: 'string', format: 'date', required: false)]
     public function update(UpdateProjectRequest $request, Project $project): ProjectResource
     {
         $project->update($request->validated());

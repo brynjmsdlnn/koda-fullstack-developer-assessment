@@ -36,6 +36,10 @@ class IndexProjectRequest extends FormRequest
             $merged['per_page'] = $this->query('perPage');
         }
 
+        if ($this->has('all')) {
+            $merged['all'] = filter_var($this->query('all'), FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        }
+
         $sortBy = $merged['sort_by'] ?? $this->query('sort_by');
         if ($sortBy) {
             $columnMap = [
@@ -83,7 +87,7 @@ class IndexProjectRequest extends FormRequest
             ],
             'sort_order' => ['nullable', 'string', Rule::in(['asc', 'desc', 'ASC', 'DESC'])],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
-            'all' => ['nullable'],
+            'all' => ['nullable', 'boolean'],
         ];
     }
 }
