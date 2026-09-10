@@ -1,0 +1,10 @@
+.git
+.gitignore
+
+backend/node_modules
+backend/vendor
+backend/.env
+
+frontend/node_modules
+frontend/dist
+
