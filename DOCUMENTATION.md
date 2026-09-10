@@ -34,21 +34,21 @@ stack, seeding `test_data.json`, and running without Docker.
                                  ▼
 ┌─────────────────────────────────────────────────────────────────┐
 │                     Backend (Laravel 13)                        │
-│  - PHP 8.4.15 + SQLite Database                                 │
+│  - PHP 8.4 + SQLite Database                                 │
 │  - Dedicated Form Requests with NormalizesProjectInput trait    │
 │  - Eloquent ORM with Query Scopes (search, filter, sort)        │
 │  - Resource layer with dual-casing support                      │
 │  - Dedoc Scramble 0.13 (OpenAPI 3.1.0 automated generation)     │
-│  - Pest PHP 5.1 (25 automated feature & unit tests)             │
+│  - Pest PHP 5.1 (23 automated feature tests)                  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Backend (Laravel 13 / PHP 8.4)
-* **Framework**: Laravel 13 (`13.31.0`) on PHP 8.4 (`8.4.15`).
+* **Framework**: Laravel 13 (`13.31.0`) on PHP 8.4.
 * **Database**: SQLite (`database/database.sqlite`), mounted via Docker volume.
 * **OpenAPI Generator**: `dedoc/scramble` (`0.13.43`) automatically generates OpenAPI 3.1.0 spec from route signatures, controller attributes, and form requests.
 * **Code Styling**: Laravel Pint (`1.32.0`) PSR-12 standard.
-* **Testing**: Pest PHP (`5.1.4`) automated test framework (24 feature tests).
+* **Testing**: Pest PHP (`5.1.4`) automated test framework (23 feature tests).
 
 ### Frontend (React 19 / TypeScript)
 * **Framework**: React 19 (`19.3.0`) SPA bundled with Vite 8 (`8.2.2`).
@@ -62,7 +62,7 @@ stack, seeding `test_data.json`, and running without Docker.
 
 ## 3. REST API Reference
 
-The API is accessible at both `/api/projects` and `/projects` (via route aliasing).
+The API is accessible at `/api/projects`.
 
 ### Endpoints Summary
 
@@ -145,28 +145,34 @@ docker compose exec backend php artisan test --compact
 ```
 **Results**:
 ```text
-Tests:    24 passed (95 assertions)
+Tests:    23 passed (93 assertions)
 Duration: 3.29s
 ```
 
-#### Test Breakdown:
-* `it returns a paginated list of projects`
-* `it returns an unpaginated collection when all=true`
+#### Test Breakdown (exact names, `php artisan test --list-tests`):
+* `it exposes the api status on the root route`
+* `it returns an empty paginated collection when no projects exist`
+* `it returns an unpaginated collection when all query parameter is true`
+* `it lists projects with pagination and respects per_page`
 * `it filters projects by status`
+* `it filters projects by multiple comma-separated statuses`
 * `it filters projects by priority`
-* `it searches projects across client_name, project_name, and description`
-* `it sorts projects by date, string, and id in asc and desc`
-* `it creates a project with snake_case parameters`
-* `it creates a project with camelCase parameters`
+* `it searches projects by client name, project name, or description`
+* `it sorts projects correctly with id tie-breaker`
+* `it retrieves a single project by id`
+* `it returns 404 when project does not exist`
+* `it creates a project successfully with snake_case payload`
+* `it creates a project successfully with camelCase payload`
 * `it validates required fields on creation`
-* `it validates enum status and priority values`
-* `it rejects dueDate earlier than startDate on create`
-* `it updates an existing project with partial fields`
-* `it enforces dueDate constraint against existing startDate during partial update`
-* `it deletes a project and returns 204`
-* `it returns 404 for non-existent project id`
+* `it validates enum values on creation`
+* `it fails creation when due_date is earlier than start_date`
+* `it updates project fields with partial payload`
+* `it compares submitted due_date against stored start_date on partial update`
+* `it compares submitted start_date against stored due_date on partial update`
+* `it allows clearing nullable dates on update`
+* `it deletes a project and returns 204 No Content`
+* `it returns 404 when attempting to delete non-existent project`
 * `it seeds 12 projects from test_data.json accurately`
-* ...and additional boundary tests.
 
 ### Code Style Checks
 ```bash
@@ -208,3 +214,13 @@ Frontend JavaScript ecosystems conventionally use `camelCase`, while Laravel con
   * **Antigravity** (Google DeepMind's advanced agentic coding pair programmer) — scaffolding boilerplate, synchronizing the OpenAPI pipeline, and generating the Pest automated test matrix. All architecture, database schemas, normalization logic, and components were reviewed, customized, and verified end-to-end.
   * **OpenCode** — agentic assistance with tooling tasks: codebase exploration, cleanup refactors, and verification.
   * **ChatGPT** — brainstorming and researching the tools used in the project (e.g. Docker behavior).
+
+---
+
+## 7. Assumptions
+
+- Authentication was considered out of scope because it is listed as an optional bonus feature.
+- Start Date is optional; when provided, Due Date must be on or after Start Date.
+- Projects use SQLite for persistence to keep the assessment self-contained and easy to run locally.
+- The API accepts both camelCase and snake_case payloads to accommodate frontend conventions while maintaining Laravel backend conventions.
+- Pagination, search, filtering, and sorting were implemented as enhancements while keeping the required CRUD operations as the core functionality.

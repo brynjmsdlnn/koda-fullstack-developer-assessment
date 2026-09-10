@@ -303,15 +303,6 @@ test('it returns 404 when attempting to delete non-existent project', function (
     $response->assertNotFound();
 });
 
-test('it routes requests to /projects alias identically to /api/projects', function () {
-    Project::factory()->count(2)->create();
-
-    $response = $this->getJson('/projects?all=true');
-
-    $response->assertOk()
-        ->assertJsonCount(2, 'data');
-});
-
 test('it seeds 12 projects from test_data.json accurately', function () {
     $this->seed(ProjectSeeder::class);
 
