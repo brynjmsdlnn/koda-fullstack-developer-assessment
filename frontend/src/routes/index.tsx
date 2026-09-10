@@ -16,6 +16,7 @@ import type {
 import ProjectStats from '#/components/projects/ProjectStats'
 import ProjectFilters from '#/components/projects/ProjectFilters'
 import type { FilterState } from '#/components/projects/ProjectFilters'
+import { useToast } from '#/components/Toast'
 import ProjectTable from '#/components/projects/ProjectTable'
 import ProjectFormModal from '#/components/projects/ProjectFormModal'
 import DeleteConfirmModal from '#/components/projects/DeleteConfirmModal'
@@ -24,6 +25,7 @@ export const Route = createFileRoute('/')({ component: DashboardPage })
 
 function DashboardPage() {
   const queryClient = useQueryClient()
+  const { notify } = useToast()
 
   // Filter & Search State
   const [filters, setFilters] = useState<FilterState>({
@@ -78,6 +80,7 @@ function DashboardPage() {
   }
 
   const handleFormSubmit = async (formData: StoreProjectRequest) => {
+    const isEditing = Boolean(editingProject)
     if (editingProject) {
       await updateMutation.mutateAsync({
         project: editingProject.id,
@@ -92,15 +95,31 @@ function DashboardPage() {
     await queryClient.invalidateQueries({
       queryKey: getProjectsIndexQueryKey(),
     })
+    // Note: submit failures are caught and shown inline by the form modal,
+    // so only toast on success here.
+    notify(
+      isEditing
+        ? 'Project updated successfully.'
+        : 'Project created successfully.',
+    )
   }
 
   const handleDeleteConfirm = async () => {
     if (!deletingProject) return
-    await deleteMutation.mutateAsync({ project: deletingProject.id })
-    await queryClient.invalidateQueries({
-      queryKey: getProjectsIndexQueryKey(),
-    })
-    setDeletingProject(null)
+    const name = deletingProject.projectName
+    try {
+      await deleteMutation.mutateAsync({ project: deletingProject.id })
+      await queryClient.invalidateQueries({
+        queryKey: getProjectsIndexQueryKey(),
+      })
+      setDeletingProject(null)
+      notify(`"${name}" deleted successfully.`)
+    } catch {
+      notify(
+        'Failed to delete the project. Please check your connection and try again.',
+        'error',
+      )
+    }
   }
 
   const isFiltered =
